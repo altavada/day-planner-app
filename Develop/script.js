@@ -1,27 +1,30 @@
-// Wrap all code that interacts with the DOM in a call to jQuery to ensure that
-// the code isn't run until the browser has finished rendering all the elements
-// in the html.
+// Wrapped to halt execution until DOM is fully rendered
 $(function () {
-  // Save button event handler
+  // Variables
+  var now = dayjs();
+  var civilianTime = now.format('hh');
+  var militaryTime = now.format('HH');
+  var currentDay = $('#currentDay');
+
+  // Save button event handler, saves input to local storage in corresponding time slot.
   $('.saveBtn').click(function() {
     let timeslot = $(this).parent().attr('id');
     let input = $(this).prev().val();
     localStorage.setItem(timeslot, input);
   })
 
-  // TODO: Add code to apply the past, present, or future class to each time
-  // block by comparing the id to the current hour. HINTS: How can the id
-  // attribute of each time-block be used to conditionally add or remove the
-  // past, present, and future classes? How can Day.js be used to get the
-  // current hour in 24-hour time?
-  var now = dayjs();
-  var civilianTime = 4//now.format('hh');
-  var militaryTime = 4//now.format('HH');
+  // Loop handling code that needs execution for each time slot. 
+  // Wrapped in function in case it needs to run again w/o page reload.
   function setCurrentHour() {
     $('#calendar').children('div').each(function() {
       let divtarget = $(this);
       let timeSlot = divtarget.attr('id');
       let timeVal = timeSlot.charAt(5) + timeSlot.charAt(6);
+      let priorEntries = localStorage.getItem(timeSlot);
+      // Populates time slots with previously-saved entries. 
+      // Apparently, this doesn't overwrite unsaved changes if called w/o reloading, which is very nice.
+      divtarget.children('textarea').text(priorEntries);
+      // The following functions toggle the past/present/future state of the selected time slot when called.
       function setToPresent() {
         divtarget.removeClass('past future');
         divtarget.addClass('present');
@@ -34,6 +37,7 @@ $(function () {
         divtarget.removeClass('future present');
         divtarget.addClass('past');
       }
+      // Conditionals checking selected time slot against current hour and calling the appropriate toggle function.
       if (militaryTime < 9) {
         setToFuture();
       } else if (militaryTime >= 18) {
@@ -55,28 +59,19 @@ $(function () {
           setToPast();
         }
       }
-      let priorEntries = localStorage.getItem(timeSlot);
-      divtarget.children('textarea').text(priorEntries);
     })
   }
+  // Calling loop function once page loads
   setCurrentHour();
 
-  // TODO: Add code to get any user input that was saved in localStorage and set
-  // the values of the corresponding textarea elements. HINT: How can the id
-  // attribute of each time-block be used to do this?
-  // $('#calendar').children('div').each(function() {
-  //   let divtarget = $(this);
-  //   let timeSlot = divtarget.attr('id');
-  //   let priorEntries = localStorage.getItem(timeSlot);
-  //   divtarget.children('textarea').text(priorEntries);
-  // })
-
-  // TODO: Add code to display the current date in the header of the page.
-  var currentDay = $('#currentDay');
+  // Interval function checking current date/time every second and updating page accordingly
   setInterval(function() {
+    // Populates target element with current date/time
     currentDay.text(dayjs().format('dddd, MMMM D, YYYY h:mm:ss a'));
+    // Checking current hour in 12- and 24-hour formats
     let currentHour = dayjs().format('hh');
     let currentHourMil = dayjs().format('HH');
+    // On each hour, updates relevant data and calls loop function to update time slot status.
     if (currentHourMil != militaryTime) {
       civilianTime = currentHour;
       militaryTime = currentHourMil;
